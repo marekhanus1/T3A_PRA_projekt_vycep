@@ -33,7 +33,7 @@ void obsluhaTlacitek() {
       int indexNapoje = i / 2;
       bool jeMaly = (i % 2 == 0);
       int objem = jeMaly ? OBJEM_M : OBJEM_V;
-      const char* label = jeMaly ? "0,5 l" : "0,3 l";
+      const char* label = jeMaly ? "0,3 l" : "0,5 l";
       
       provadejVydej(indexNapoje, objem, label);
     }
@@ -62,24 +62,54 @@ void provadejVydej(int index, int objem, const char* labelVelikost) {
 void zobrazStatus(const char* nazev, const char* velikost, int proc) {
   u8g2.clearBuffer();
   
-  // Horní řádek: Název nápoje
-  u8g2.setFont(u8g2_font_ncenB10_tr);
-  u8g2.setCursor(0, 15);
+  // 1. STATICKÝ TEXT (Název a velikost)
+  u8g2.setFont(u8g2_font_6x10_tf); // Úsporný font
+  u8g2.setCursor(0, 10);
   u8g2.print(nazev);
   
-  // Velikost nápoje (menším písmem)
-  u8g2.setFont(u8g2_font_ncenB08_tr);
-  u8g2.setCursor(85, 15);
+  u8g2.setCursor(95, 10);
   u8g2.print(velikost);
   
-  // Progress bar
-  u8g2.drawFrame(0, 30, 128, 12);
-  u8g2.drawBox(2, 32, map(proc, 0, 100, 0, 124), 8);
+  // Horizontální oddělovací čára pod textem (U8g2 používá drawHLine)
+  u8g2.drawHLine(0, 14, 128);
+
+  // 2. DIGITÁLNÍ TORRENT ANIMACE (Matrix proud)
+  int casovyPosun = millis() / 15; // Rychlost padání proudu
   
-  // Procenta
-  u8g2.setCursor(55, 60);
+  // Vykreslíme 14 vertikálních proudů (osa X: 0 až 80)
+  for (int i = 0; i < 14; i++) {
+    int x = i * 6; 
+    int startY = (casovyPosun + (i * 17)) % 65; 
+    int delkaCary = 8 + (i % 3) * 5;            
+    
+    if (startY > 16 && startY < 64) {
+      int vykreslitDelku = (startY + delkaCary > 64) ? (64 - startY) : delkaCary;
+      
+      // Opraveno na drawVLine
+      u8g2.drawVLine(x, startY, vykreslitDelku);
+      
+      // Jiskra na konci čáry pro lepší Matrix efekt
+      if (startY + vykreslitDelku < 63) {
+        u8g2.drawPixel(x + 1, startY + vykreslitDelku);
+      }
+    }
+  }
+
+  // 3. ADAPTIVNÍ UKAZATEL PROCENT (Pravá strana displeje)
+  // Opraveno na drawVLine
+  u8g2.drawVLine(90, 15, 49);
+  
+  // Velký ukazatel procent
+  u8g2.setFont(u8g2_font_helvB14_tr);
+  u8g2.setCursor(95, 40);
   u8g2.print(proc);
+  
+  u8g2.setFont(u8g2_font_6x10_tf);
   u8g2.print("%");
+  
+  // Mini doplňkový progress bar na boku
+  u8g2.drawFrame(95, 48, 28, 8);
+  u8g2.drawBox(97, 50, map(proc, 0, 100, 0, 24), 4);
   
   u8g2.sendBuffer();
 }
